@@ -1,5 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UIElements;
 
 namespace Marsminerwa
 {
@@ -22,6 +26,9 @@ namespace Marsminerwa
         [SerializeField]
         private float cameraTargetOffset = 5f;
 
+        [SerializeField]
+        private LayerMask interactionMask;
+        
         private Rigidbody2D rb;
         private Shooter shooter;
         
@@ -30,11 +37,13 @@ namespace Marsminerwa
         private Vector2 lookingDirection;
         private float trueLookDistance;
         private DefaultInputActions inputActions;
+        private Animator animator;
 
         private void Awake()
         {
             rb = GetComponent<Rigidbody2D>();
             shooter = GetComponent<Shooter>();
+            animator = GetComponent<Animator>();
         }
 
         private void OnEnable()
@@ -55,13 +64,57 @@ namespace Marsminerwa
 
         private void Update()
         {
+            ProcessLooking();
+            ProcessShooting();
+            ProcessInteractions();
+            ProcessAnimations();
+        }
+
+        private void ProcessAnimations()
+        {
+            animator.SetFloat(AnimatorProps.Velocity, rb.velocity.magnitude);
+        }
+
+        private void ProcessShooting()
+        {
+            if (isShooting) Shoot();
+        }
+
+        private void ProcessLooking()
+        {
             if (lookingDirection != Vector2.zero)
             {
-                playerTool.localPosition = lookingDirection * playerToolOffset;
+                Vector3 toolPosition = lookingDirection * playerToolOffset;
+                toolPosition.z = lookingDirection.y < 0 ? -0.1f : 0.1f;
+                playerTool.localPosition = toolPosition;
                 float cameraOffset = Mathf.Min(trueLookDistance, cameraTargetOffset);
                 cameraTarget.localPosition = lookingDirection * cameraOffset;
+                playerTool.up = lookingDirection;
+
             }
-            if (isShooting) Shoot();
+        }
+
+        private void ProcessInteractions()
+        {
+            if (inputMovement != Vector2.zero)
+            {
+                ContactFilter2D filter2D = new ContactFilter2D();
+                filter2D.layerMask = interactionMask;
+                filter2D.useTriggers = false;
+                List<RaycastHit2D> hits = new();
+                int hitCount = Physics2D.Raycast(transform.position, inputMovement, filter2D, hits, 0.6f);
+                for (int i = 0; i < hitCount ; i++)
+                {
+                    RaycastHit2D hit = hits[i];
+                    Interactable interacable = hit.collider.GetComponent<Interactable>();
+                    if (interacable != null)
+                    {
+                        Direction dir = DirectionExtension.FromVector(inputMovement);
+                        interacable.Interact(dir);
+                        break;
+                    }
+                }
+            }
         }
 
         void FixedUpdate()
