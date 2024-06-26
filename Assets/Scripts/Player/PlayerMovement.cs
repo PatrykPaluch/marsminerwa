@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+using UnityEngine.SocialPlatforms.Impl;
 using UnityEngine.UIElements;
 
 namespace Marsminerwa
@@ -12,6 +14,10 @@ namespace Marsminerwa
     [RequireComponent(typeof(Shooter))]
     public class PlayerMovement : MonoBehaviour, DefaultInputActions.IPlayerActions
     {
+        private static PlayerMovement current;
+        public static GameObject PlayerObject => current ? current.gameObject : null;
+        public static Vector2 PlayerPosition => current ? current.transform.position : Vector2.zero;
+        
         [SerializeField]
         private float speed = 5f;
 
@@ -28,6 +34,9 @@ namespace Marsminerwa
 
         [SerializeField]
         private LayerMask interactionMask;
+
+        [SerializeField]
+        private GameObject deathScreen;
         
         private Rigidbody2D rb;
         private Shooter shooter;
@@ -38,12 +47,15 @@ namespace Marsminerwa
         private float trueLookDistance;
         private DefaultInputActions inputActions;
         private Animator animator;
-
+        private Health health;
+        
         private void Awake()
         {
             rb = GetComponent<Rigidbody2D>();
             shooter = GetComponent<Shooter>();
             animator = GetComponent<Animator>();
+            health = GetComponent<Health>();
+            current = this;
         }
 
         private void OnEnable()
@@ -55,11 +67,32 @@ namespace Marsminerwa
             }
 
             inputActions.Enable();
+            health.OnDeath += OnDeath;
+            health.OnHealthChange += OnHealthChange;
         }
 
         private void OnDisable()
         {
             inputActions.Disable();
+            health.OnDeath -= OnDeath;
+            health.OnHealthChange -= OnHealthChange;
+        }
+
+        private void OnDeath(Health _, int __)
+        {
+            GameManager.PlayPlayerDeathSound();
+            
+            deathScreen.SetActive(true);
+            Time.timeScale = 0.25f;
+            // enabled = false;
+        }
+
+        private void OnHealthChange(Health source, int previous)
+        {
+            if (source.CurrentHealth < previous)
+            {
+                animator.SetTrigger(AnimatorProps.Damage);
+            }
         }
 
         private void Update()
@@ -146,6 +179,12 @@ namespace Marsminerwa
         {
             if (context.performed) isShooting = true;
             if (context.canceled) isShooting = false;
+        }
+
+        public void OnExit(InputAction.CallbackContext context)
+        {
+            SceneManager.LoadScene("Scenes/Menu");
+            GamePrefs.SetScore(Score.score);
         }
     }
 }

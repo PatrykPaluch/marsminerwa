@@ -6,5 +6,6 @@ namespace Marsminerwa
     {
         public static readonly int Velocity = Animator.StringToHash("velocity");
         public static readonly int Damage = Animator.StringToHash("damage");
+        public static readonly int Attack = Animator.StringToHash("attack");
     }
 }

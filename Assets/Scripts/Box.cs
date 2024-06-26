@@ -29,6 +29,7 @@ namespace Marsminerwa
             if (collision != null && !collision.isTrigger && collision != GetComponent<Collider2D>())
                 return;
             
+            GameManager.PlayMoveBoxSound();
             isMoving = true;
             moveT = 0;
             startPosition = currentPosition;

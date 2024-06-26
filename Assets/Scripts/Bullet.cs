@@ -6,6 +6,7 @@ namespace Marsminerwa
     public class Bullet : MonoBehaviour, PoolEventListener
     {
         public uint Damage = 1;
+        public uint DamageMax = 3;
         
         [SerializeField]
         private float speed = 10f;
@@ -26,7 +27,8 @@ namespace Marsminerwa
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            other.GetComponent<Health>()?.TakeDamage(Damage);
+            uint dmg = (uint) Random.Range(Damage, DamageMax);
+            other.GetComponent<Health>()?.TakeDamage(dmg);
             gameObject.SafeDestroy();
         }
 
